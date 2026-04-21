@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "Cython>=3.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sra-reader"
+version = "0.1.0"
+description = "Direct SRA file reader for single-cell experiments — bypass fasterq-dump"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "Daniel Leon-Perinan" },
+]
+keywords = ["bioinformatics", "sra", "single-cell", "scRNA-seq", "kmer", "fastq"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Cython",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "tqdm"]
+
+[tool.setuptools.packages.find]
+include = ["sra_reader*"]
