@@ -1,23 +1,16 @@
-from setuptools import setup, Extension
-from Cython.Build import cythonize
+"""
+Compatibility shim — delegates to build.py.
 
-extensions = [
-    Extension(
-        "sra_reader._parser",
-        ["sra_reader/_parser.pyx"],
-        extra_compile_args=["-O3", "-march=native"],
-    ),
-]
+Use ``python build.py build_ext --inplace`` for in-place Cython compilation,
+or ``pip install .`` / ``poetry install`` for a full install.
+"""
+
+from setuptools import setup
+from build import get_extensions, BuildExt
 
 setup(
-    ext_modules=cythonize(
-        extensions,
-        compiler_directives={
-            "language_level": "3",
-            "boundscheck": False,
-            "wraparound": False,
-            "cdivision": True,
-            "initializedcheck": False,
-        },
-    ),
+    name="sra-reader",
+    packages=["sra_reader"],
+    ext_modules=get_extensions(),
+    cmdclass=dict(build_ext=BuildExt),
 )
