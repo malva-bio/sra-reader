@@ -228,16 +228,53 @@ class SRAReader:
             self._process = None
 
     def iter_raw_batched(
-        self, batch_size: int = 10000,
+        self, batch_size: int = 10000, backend: Optional[str] = None,
     ) -> Iterator[tuple[list[bytes], ...]]:
         """
         Batch iteration: yields M lists (one per segment) of N byte strings.
 
         Ideal for feeding into vectorized Cython kmer processing.
+        Uses xsra when available (5-20x faster than vdb-dump).
+
+        Args:
+            batch_size: Number of spots per batch.
+            backend: ``"xsra"`` or ``"vdb_dump"``. Auto-selects xsra when available.
 
         Yields:
             ([seg0_spot0, seg0_spot1, ...], [seg1_spot0, ...], ...)
         """
+        if backend is None:
+            backend = "xsra" if has_xsra() else "vdb_dump"
+
+        if backend == "xsra":
+            yield from self._iter_raw_batched_xsra(batch_size)
+        else:
+            yield from self._iter_raw_batched_vdb_dump(batch_size)
+
+    def _iter_raw_batched_xsra(
+        self, batch_size: int,
+    ) -> Iterator[tuple[list[bytes], ...]]:
+        """xsra backend for iter_raw_batched."""
+        num_segs = len(self._seg_slices)
+        batch: list[list[bytes]] = [[] for _ in range(num_segs)]
+        count = 0
+
+        for spot_segs in self._iter_raw_xsra():
+            for i, seq in enumerate(spot_segs):
+                batch[i].append(seq)
+            count += 1
+            if count >= batch_size:
+                yield tuple(batch)
+                batch = [[] for _ in range(num_segs)]
+                count = 0
+
+        if count > 0:
+            yield tuple(batch)
+
+    def _iter_raw_batched_vdb_dump(
+        self, batch_size: int,
+    ) -> Iterator[tuple[list[bytes], ...]]:
+        """vdb-dump backend for iter_raw_batched."""
         from ._parser import parse_lines_batch_seqonly
 
         proc = run_vdb_dump(self.sra_path, ["READ"], self._row_range(), fmt="csv")
